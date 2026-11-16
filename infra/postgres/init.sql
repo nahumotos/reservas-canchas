@@ -1,0 +1,4 @@
+CREATE DATABASE canchas;
+CREATE DATABASE reservas;
+CREATE DATABASE usuarios;
+CREATE DATABASE pagos;

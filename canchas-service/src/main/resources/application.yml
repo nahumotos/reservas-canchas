@@ -1,0 +1,27 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: canchas-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/canchas
+    username: ${DB_USER:app}
+    password: ${DB_PASSWORD:cambiame}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  # Sin esto, springdoc agrega las respuestas del @RestControllerAdvice a todos los endpoints.
+  # Cada endpoint documenta sus propios códigos con @ApiResponse.
+  override-with-generic-response: false
+  # Sin esto Swagger muestra "*/*" como tipo de las respuestas exitosas.
+  default-produces-media-type: application/json
