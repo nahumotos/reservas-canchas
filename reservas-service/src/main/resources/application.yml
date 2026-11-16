@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: reservas-service
+  config:
+    # Credenciales (RABBITMQ_USER, RABBITMQ_PASSWORD, ...) desde el .env de la raíz del repo, el
+    # mismo que usan docker-compose y pagos-service. "optional": si no existe, siguen valiendo las
+    # variables de entorno y los valores por defecto.
+    import: optional:file:../.env[.properties]
   datasource:
     url: jdbc:postgresql://localhost:5432/reservas
     username: ${DB_USER:app}
@@ -12,6 +17,25 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_USER:app}
+    password: ${RABBITMQ_PASSWORD:cambiame}
+    # El publicador del outbox espera el ack del broker antes de marcar un evento como enviado.
+    publisher-confirm-type: correlated
+    # Y con mandatory, que el broker le devuelva el mensaje si no llegó a ninguna cola: el ack
+    # solo no alcanza, porque RabbitMQ también confirma los mensajes que descarta.
+    publisher-returns: true
+    listener:
+      simple:
+        # Un mensaje que falla no vuelve a la cola para siempre: tras los reintentos va a la DLQ.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-retries: 3
+          initial-interval: 1s
+          multiplier: 2
 
 management:
   endpoints:
@@ -42,3 +66,11 @@ reservas:
   expiracion:
     # Cada minuto, en el segundo 0. "-" la desactiva (lo usan los tests).
     cron: "0 * * * * *"
+  cancelacion:
+    # Una reserva CONFIRMADA (pagada) se puede cancelar y reembolsar hasta este tiempo antes del turno.
+    anticipacion-minima: 24h
+
+eventos:
+  publicacion:
+    # Publicación del outbox (evento_saliente) a RabbitMQ. "-" la desactiva (lo usan los tests).
+    cron: "* * * * * *"

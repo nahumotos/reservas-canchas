@@ -1,0 +1,16 @@
+{
+  "id": "ORD01JQ4S4KYYWFQFM2FF4XRTA1MX",
+  "status": "refunded",
+  "status_detail": "refunded",
+  "transactions": {
+    "refunds": [
+      {
+        "id": "REF01JQ4SB0WAD7J3R8Y0K2E6T5PZ",
+        "transaction_id": "PAY01JQ4S7G3M2X0A6D0H9B4N8C1R",
+        "reference_id": "01JQ4SB0WAD7J3R8Y0K2E6T5Q0",
+        "amount": "25000.00",
+        "status": "processed"
+      }
+    ]
+  }
+}

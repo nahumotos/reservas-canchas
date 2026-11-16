@@ -165,35 +165,13 @@ class ReservaApiIntegrationTest extends PruebaDeIntegracion {
 	}
 
 	@Test
-	void confirmar_pendiente_200Confirmada() throws Exception {
+	void confirmar_yaNoEsUnEndpoint_404YLaReservaSigueSinConfirmar() throws Exception {
+		// La confirmación sólo llega por el evento pago.aprobado (ConfirmacionPorPagoIntegrationTest).
 		Integer id = crearYObtenerId();
 
-		mockMvc.perform(post("/api/reservas/{id}/confirmar", id))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.estado").value("CONFIRMADA"));
-	}
+		mockMvc.perform(post("/api/reservas/{id}/confirmar", id)).andExpect(status().isNotFound());
 
-	@Test
-	void confirmar_vencidaAunqueElJobNoCorrio_409() throws Exception {
-		Integer id = crearYObtenerId();
-		reloj.avanzar(Duration.ofMinutes(10));
-
-		mockMvc.perform(post("/api/reservas/{id}/confirmar", id))
-				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.detail", containsString("venció")));
-	}
-
-	@Test
-	void confirmar_cancelada_409() throws Exception {
-		Integer id = crearYObtenerId();
-		mockMvc.perform(post("/api/reservas/{id}/cancelar", id)).andExpect(status().isOk());
-
-		mockMvc.perform(post("/api/reservas/{id}/confirmar", id)).andExpect(status().isConflict());
-	}
-
-	@Test
-	void confirmar_inexistente_404() throws Exception {
-		mockMvc.perform(post("/api/reservas/{id}/confirmar", 999_999)).andExpect(status().isNotFound());
+		mockMvc.perform(get("/api/reservas/{id}", id)).andExpect(jsonPath("$.estado").value("PENDIENTE_PAGO"));
 	}
 
 	@Test

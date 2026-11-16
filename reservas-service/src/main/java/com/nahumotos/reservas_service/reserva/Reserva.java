@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Optional;
 
 import com.nahumotos.reservas_service.error.ConflictoException;
 import com.nahumotos.reservas_service.turno.Turnos;
@@ -104,6 +105,27 @@ public class Reserva {
 			case CANCELADA -> throw new ConflictoException("La reserva está cancelada y no se puede confirmar");
 			case EXPIRADA -> throw new ConflictoException("La reserva venció y ya no se puede confirmar");
 		}
+	}
+
+	/**
+	 * Por qué un pago aprobado no puede confirmar esta reserva, o vacío si puede. Sirve para
+	 * decidir antes de llamar a {@link #confirmar(Instant)}: así el que procesa el pago no tiene
+	 * que atrapar una excepción que deja su transacción marcada para rollback (y perdería el
+	 * evento de rechazo que guarda en esa misma transacción).
+	 * <p>
+	 * A diferencia de {@code confirmar}, una reserva ya CONFIRMADA no se acepta: cada pago se
+	 * informa una sola vez (el inbox descarta los repetidos), así que otro pago aprobado para la
+	 * misma reserva es un cobro de más y hay que devolverlo.
+	 */
+	public Optional<String> impedimentoParaConfirmar(Instant ahora) {
+		return switch (estado) {
+			case PENDIENTE_PAGO -> vencida(ahora)
+					? Optional.of("La reserva venció antes de que se aprobara el pago")
+					: Optional.empty();
+			case EXPIRADA -> Optional.of("La reserva expiró antes de que se aprobara el pago");
+			case CANCELADA -> Optional.of("La reserva fue cancelada");
+			case CONFIRMADA -> Optional.of("La reserva ya estaba confirmada con otro pago");
+		};
 	}
 
 	/** Libera el turno. Cancelar una reserva ya cancelada no hace nada. */

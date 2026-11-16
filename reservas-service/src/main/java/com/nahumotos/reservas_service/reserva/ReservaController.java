@@ -25,7 +25,8 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/reservas")
-@Tag(name = "Reservas", description = "Alta, consulta, confirmación y cancelación de reservas")
+@Tag(name = "Reservas", description = "Alta, consulta y cancelación de reservas. La confirmación no es un "
+		+ "endpoint: llega sola cuando pagos-service publica pago.aprobado.")
 public class ReservaController {
 
 	private final ReservaService reservaService;
@@ -65,26 +66,15 @@ public class ReservaController {
 		return reservaService.obtener(id);
 	}
 
-	@PostMapping("/{id}/confirmar")
-	@Operation(summary = "Confirmar una reserva (simula el pago aprobado)",
-			description = "Pasa de PENDIENTE_PAGO a CONFIRMADA si todavía no venció. Confirmar una reserva ya "
-					+ "confirmada no hace nada. Lo va a llamar pagos-service cuando exista.")
-	@ApiResponse(responseCode = "200", description = "Reserva confirmada")
-	@ApiResponse(responseCode = "404", description = "La reserva no existe",
-			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-	@ApiResponse(responseCode = "409", description = "La reserva venció o está cancelada",
-			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-	public ReservaResponse confirmar(@Parameter(description = "Id de la reserva", example = "1") @PathVariable Long id) {
-		return reservaService.confirmar(id);
-	}
-
 	@PostMapping("/{id}/cancelar")
 	@Operation(summary = "Cancelar una reserva",
-			description = "Pasa a CANCELADA y libera el turno. Cancelar una reserva ya cancelada no hace nada.")
+			description = "Pasa a CANCELADA y libera el turno. Cancelar una reserva ya cancelada no hace nada. "
+					+ "Una reserva CONFIRMADA (pagada) sólo se puede cancelar hasta 24 h antes del turno; "
+					+ "pagos-service devuelve la plata.")
 	@ApiResponse(responseCode = "200", description = "Reserva cancelada")
 	@ApiResponse(responseCode = "404", description = "La reserva no existe",
 			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
-	@ApiResponse(responseCode = "409", description = "La reserva ya expiró",
+	@ApiResponse(responseCode = "409", description = "La reserva ya expiró, o está confirmada y faltan menos de 24 h",
 			content = @Content(mediaType = "application/problem+json", schema = @Schema(implementation = ProblemDetail.class)))
 	public ReservaResponse cancelar(@Parameter(description = "Id de la reserva", example = "1") @PathVariable Long id) {
 		return reservaService.cancelar(id);

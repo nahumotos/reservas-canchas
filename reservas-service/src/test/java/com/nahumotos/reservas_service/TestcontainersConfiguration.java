@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.rabbitmq.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
 @TestConfiguration(proxyBeanMethods = false)
@@ -23,6 +24,13 @@ class TestcontainersConfiguration {
 	PostgreSQLContainer postgresContainer() {
 		// Misma versión que docker-compose.yml.
 		return new PostgreSQLContainer(DockerImageName.parse("postgres:18"));
+	}
+
+	@Bean
+	@ServiceConnection
+	RabbitMQContainer rabbitContainer() {
+		// Misma imagen que docker-compose.yml.
+		return new RabbitMQContainer(DockerImageName.parse("rabbitmq:4-management"));
 	}
 
 }

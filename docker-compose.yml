@@ -12,12 +12,18 @@ services:
 
   rabbitmq:
     image: rabbitmq:4-management
+    # RabbitMQ guarda sus datos por nombre de nodo (rabbit@<hostname>): con un hostname fijo, las
+    # colas durables y los mensajes persistentes sobreviven a recrear el contenedor.
+    hostname: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"
       - "15672:15672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
 
 volumes:
   pgdata:
+  rabbitmqdata:

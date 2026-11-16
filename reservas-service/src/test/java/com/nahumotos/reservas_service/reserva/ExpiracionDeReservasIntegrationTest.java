@@ -2,9 +2,7 @@ package com.nahumotos.reservas_service.reserva;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Duration;
@@ -46,22 +44,14 @@ class ExpiracionDeReservasIntegrationTest extends PruebaDeIntegracion {
 	@Test
 	void expirarVencidas_noTocaConfirmadas() throws Exception {
 		Long a = reservar("18:00");
-		mockMvc.perform(post("/api/reservas/{id}/confirmar", a)).andExpect(status().isOk());
+		// La confirmación real llega por pago.aprobado; acá sólo importa que esté CONFIRMADA.
+		Reserva reserva = reservaRepository.findById(a).orElseThrow();
+		reserva.confirmar(reloj.instant());
+		reservaRepository.save(reserva);
 		reloj.avanzar(Duration.ofMinutes(11));
 
 		assertThat(expiracion.expirarVencidas()).isZero();
 		assertThat(estadoDe(a)).isEqualTo(EstadoReserva.CONFIRMADA);
-	}
-
-	@Test
-	void confirmar_expirada_409() throws Exception {
-		Long a = reservar("18:00");
-		reloj.avanzar(Duration.ofMinutes(11));
-		expiracion.expirarVencidas();
-
-		mockMvc.perform(post("/api/reservas/{id}/confirmar", a))
-				.andExpect(status().isConflict())
-				.andExpect(jsonPath("$.detail", containsString("venció")));
 	}
 
 	@Test

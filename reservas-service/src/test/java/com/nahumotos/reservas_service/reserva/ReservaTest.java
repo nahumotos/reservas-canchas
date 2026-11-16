@@ -99,6 +99,37 @@ class ReservaTest {
 		assertThat(reserva.getEstado()).isEqualTo(EstadoReserva.CANCELADA);
 	}
 
+	@Test
+	void impedimentoParaConfirmar_pendienteNoVencida_ninguno() {
+		assertThat(pendiente().impedimentoParaConfirmar(ANTES_DE_VENCER)).isEmpty();
+	}
+
+	@Test
+	void impedimentoParaConfirmar_pendienteVencida_venció() {
+		// Mismo borde que confirmar(): justo en venceEn ya está vencida.
+		assertThat(pendiente().impedimentoParaConfirmar(VENCE)).hasValueSatisfying(
+				motivo -> assertThat(motivo).contains("venció"));
+	}
+
+	@Test
+	void impedimentoParaConfirmar_cancelada_cancelada() {
+		Reserva reserva = pendiente();
+		reserva.cancelar();
+
+		assertThat(reserva.impedimentoParaConfirmar(ANTES_DE_VENCER)).hasValueSatisfying(
+				motivo -> assertThat(motivo).contains("cancelada"));
+	}
+
+	@Test
+	void impedimentoParaConfirmar_yaConfirmada_noSeConfirmaConOtroPago() {
+		// Un segundo pago aprobado para la misma reserva se rechaza (y se reembolsa).
+		Reserva reserva = pendiente();
+		reserva.confirmar(ANTES_DE_VENCER);
+
+		assertThat(reserva.impedimentoParaConfirmar(ANTES_DE_VENCER)).hasValueSatisfying(
+				motivo -> assertThat(motivo).contains("ya estaba confirmada"));
+	}
+
 	private static Reserva pendiente() {
 		return new Reserva(10L, 1L, LocalDate.of(2030, 6, 11), LocalTime.of(18, 0), "Ana", "ana@mail.com",
 				new BigDecimal("25000.00"), CREADA, VENCE);

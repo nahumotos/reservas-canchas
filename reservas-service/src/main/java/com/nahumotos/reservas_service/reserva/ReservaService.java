@@ -22,6 +22,8 @@ import com.nahumotos.reservas_service.config.ReservasProperties;
 import com.nahumotos.reservas_service.error.ConflictoException;
 import com.nahumotos.reservas_service.error.RecursoNoEncontradoException;
 import com.nahumotos.reservas_service.error.SolicitudInvalidaException;
+import com.nahumotos.reservas_service.eventos.BandejaDeSalida;
+import com.nahumotos.reservas_service.eventos.ReservaCancelada;
 import com.nahumotos.reservas_service.turno.Turnos;
 
 @Service
@@ -32,19 +34,24 @@ public class ReservaService {
 
 	private final ReservaRepository reservaRepository;
 	private final CanchasClient canchasClient;
+	private final BandejaDeSalida bandejaDeSalida;
 	private final Clock reloj;
 	private final TransactionTemplate transaccion;
 	private final Duration vencimientoPago;
 	private final int anticipacionMaximaDias;
+	private final Duration anticipacionMinimaParaCancelar;
 
-	public ReservaService(ReservaRepository reservaRepository, CanchasClient canchasClient, Clock reloj,
-			PlatformTransactionManager transactionManager, ReservasProperties propiedades) {
+	public ReservaService(ReservaRepository reservaRepository, CanchasClient canchasClient,
+			BandejaDeSalida bandejaDeSalida, Clock reloj, PlatformTransactionManager transactionManager,
+			ReservasProperties propiedades) {
 		this.reservaRepository = reservaRepository;
 		this.canchasClient = canchasClient;
+		this.bandejaDeSalida = bandejaDeSalida;
 		this.reloj = reloj;
 		this.transaccion = new TransactionTemplate(transactionManager);
 		this.vencimientoPago = propiedades.vencimientoPago();
 		this.anticipacionMaximaDias = propiedades.anticipacionMaximaDias();
+		this.anticipacionMinimaParaCancelar = propiedades.cancelacion().anticipacionMinima();
 	}
 
 	/**
@@ -100,18 +107,26 @@ public class ReservaService {
 				.toList();
 	}
 
-	/** Simula el pago aprobado hasta que exista pagos-service. */
-	@Transactional
-	public ReservaResponse confirmar(Long id) {
-		Reserva reserva = buscar(id);
-		reserva.confirmar(reloj.instant());
-		return ReservaResponse.desde(reserva);
-	}
-
+	/**
+	 * Una PENDIENTE_PAGO se cancela sin más (si el pago llega después, se rechaza y se
+	 * reembolsa). Una CONFIRMADA ya está pagada: sólo se cancela con la anticipación mínima y,
+	 * en la misma transacción, se deja reserva.cancelada para que pagos-service devuelva la plata.
+	 */
 	@Transactional
 	public ReservaResponse cancelar(Long id) {
 		Reserva reserva = buscar(id);
+		if (reserva.getEstado() != EstadoReserva.CONFIRMADA) {
+			reserva.cancelar();
+			return ReservaResponse.desde(reserva);
+		}
+		Instant ahora = reloj.instant();
+		Instant inicioDelTurno = Turnos.inicio(reserva.getFecha(), reserva.getHoraInicio(), reloj.getZone());
+		if (Duration.between(ahora, inicioDelTurno).compareTo(anticipacionMinimaParaCancelar) < 0) {
+			throw new ConflictoException("Las reservas confirmadas se pueden cancelar hasta %d horas antes del turno"
+					.formatted(anticipacionMinimaParaCancelar.toHours()));
+		}
 		reserva.cancelar();
+		bandejaDeSalida.guardar(ReservaCancelada.de(reserva.getId(), ahora));
 		return ReservaResponse.desde(reserva);
 	}
 

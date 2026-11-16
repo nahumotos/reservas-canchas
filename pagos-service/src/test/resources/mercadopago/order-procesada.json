@@ -1,0 +1,48 @@
+{
+  "id": "ORD01JQ4S4KYYWFQFM2FF4XRTA1MX",
+  "type": "online",
+  "processing_mode": "manual",
+  "external_reference": "42",
+  "description": "Reserva de cancha #7",
+  "total_amount": "25000.00",
+  "total_paid_amount": "25000.00",
+  "country_code": "ARG",
+  "user_id": "1245621468",
+  "status": "processed",
+  "status_detail": "accredited",
+  "capture_mode": "automatic_async",
+  "created_date": "2030-06-10T15:00:01.123Z",
+  "last_updated_date": "2030-06-10T15:04:12.456Z",
+  "integration_data": {
+    "application_id": "4599991948843755"
+  },
+  "expiration_time": "PT9M",
+  "currency": "ARS",
+  "payer": {
+    "email": "test_user_123@testuser.com"
+  },
+  "transactions": {
+    "payments": [
+      {
+        "id": "PAY01JQ4S7G3M2X0A6D0H9B4N8C1R",
+        "amount": "25000.00",
+        "paid_amount": "25000.00",
+        "status": "processed",
+        "status_detail": "accredited",
+        "reference_id": "01JQ4S7G3M2X0A6D0H9B4N8C1S",
+        "payment_method": {
+          "id": "master",
+          "type": "credit_card",
+          "installments": 1
+        }
+      }
+    ]
+  },
+  "items": [
+    {
+      "title": "Reserva de cancha #7",
+      "unit_price": "25000.00",
+      "quantity": 1
+    }
+  ]
+}

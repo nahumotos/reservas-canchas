@@ -1,0 +1,38 @@
+{
+  "id": "ORD01JQ4S4KYYWFQFM2FF4XRTA1MX",
+  "type": "online",
+  "processing_mode": "manual",
+  "external_reference": "42",
+  "description": "Reserva de cancha #7",
+  "total_amount": "25000.00",
+  "total_paid_amount": "0.00",
+  "country_code": "ARG",
+  "user_id": "1245621468",
+  "status": "created",
+  "status_detail": "created",
+  "capture_mode": "automatic_async",
+  "created_date": "2030-06-10T15:00:01.123Z",
+  "last_updated_date": "2030-06-10T15:00:01.123Z",
+  "integration_data": {
+    "application_id": "4599991948843755"
+  },
+  "expiration_time": "PT9M",
+  "checkout_url": "https://www.mercadopago.com.ar/checkout/v1/redirect?order_id=ORD01JQ4S4KYYWFQFM2FF4XRTA1MX",
+  "client_token": "f2ccbd35-2b12-4fa1-9b27-8c5f0e8b7c3a",
+  "currency": "ARS",
+  "items": [
+    {
+      "title": "Reserva de cancha #7",
+      "unit_price": "25000.00",
+      "quantity": 1
+    }
+  ],
+  "config": {
+    "online": {
+      "retries": {
+        "allowed": false
+      }
+    },
+    "payment_method": {}
+  }
+}

@@ -1,0 +1,78 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: pagos-service
+  config:
+    # Credenciales (MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, ...) desde el .env de la raíz del repo,
+    # que no se versiona. "optional": si no existe, siguen valiendo las variables de entorno.
+    import: optional:file:../.env[.properties]
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pagos
+    username: ${DB_USER:app}
+    password: ${DB_PASSWORD:cambiame}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_USER:app}
+    password: ${RABBITMQ_PASSWORD:cambiame}
+    # El publicador del outbox espera el ack del broker antes de marcar un evento como enviado.
+    publisher-confirm-type: correlated
+    # Y con mandatory, que el broker le devuelva el mensaje si no llegó a ninguna cola: el ack
+    # solo no alcanza, porque RabbitMQ también confirma los mensajes que descarta.
+    publisher-returns: true
+    listener:
+      simple:
+        # Un mensaje que falla no vuelve a la cola para siempre: tras los reintentos va a la DLQ.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-retries: 3
+          initial-interval: 1s
+          multiplier: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  # Sin esto, springdoc agrega las respuestas del @RestControllerAdvice a todos los endpoints.
+  # Cada endpoint documenta sus propios códigos con @ApiResponse.
+  override-with-generic-response: false
+  # Sin esto Swagger muestra "*/*" como tipo de las respuestas exitosas.
+  default-produces-media-type: application/json
+
+reservas-service:
+  url: ${RESERVAS_SERVICE_URL:http://localhost:8082}
+  timeout-conexion: 2s
+  timeout-lectura: 3s
+
+mercadopago:
+  url-base: https://api.mercadopago.com
+  # Sin valor por defecto real: el ":" final deja la propiedad vacía si falta la variable, y
+  # @NotBlank frena el arranque con un mensaje que la nombra. Sin ese ":" Spring Boot dejaría el
+  # texto literal "${MP_ACCESS_TOKEN}" y el servicio arrancaría con un token inválido.
+  access-token: ${MP_ACCESS_TOKEN:}
+  webhook-secret: ${MP_WEBHOOK_SECRET:}
+  timeout-conexion: 2s
+  # Crear una order puede tardar más que una consulta interna.
+  timeout-lectura: 5s
+
+pagos:
+  # Si a la reserva le queda menos que esto para vencer, no tiene sentido mandar a pagar.
+  margen-minimo-para-pagar: 1m
+  reembolsos:
+    # Reintento de los reembolsos que fallaron. "-" lo desactiva (lo usan los tests).
+    cron: "0 * * * * *"
+
+eventos:
+  publicacion:
+    # Publicación del outbox (evento_saliente) a RabbitMQ. "-" la desactiva (lo usan los tests).
+    cron: "* * * * * *"

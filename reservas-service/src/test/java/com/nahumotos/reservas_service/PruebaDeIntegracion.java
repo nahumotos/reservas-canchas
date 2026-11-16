@@ -24,14 +24,19 @@ import com.nahumotos.reservas_service.canchas.ClubRemoto;
 import com.nahumotos.reservas_service.reserva.ReservaRepository;
 
 /**
- * Base de los tests de integración: PostgreSQL real (Testcontainers), canchas-service
- * simulado y un reloj fijo. Todas las subclases comparten esta misma configuración, así
- * Spring reutiliza un único contexto y un único contenedor para toda la suite.
+ * Base de los tests de integración: PostgreSQL y RabbitMQ reales (Testcontainers),
+ * canchas-service simulado y un reloj fijo. Todas las subclases comparten esta misma
+ * configuración, así Spring reutiliza un único contexto y un único par de contenedores para
+ * toda la suite.
+ * <p>
+ * Las tareas programadas (expiración y publicación de eventos) están apagadas: los tests las
+ * llaman a mano para que el resultado no dependa del tiempo.
  * <p>
  * Escenario por defecto: hoy es el 10/06/2030 a las 12:00 (hora argentina); la cancha 10
  * está activa y pertenece al club 1, que abre de 08:00 a 23:00.
  */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, properties = "reservas.expiracion.cron=-")
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT,
+		properties = { "reservas.expiracion.cron=-", "eventos.publicacion.cron=-" })
 @AutoConfigureMockMvc
 @Import({ TestcontainersConfiguration.class, RelojDeTestConfiguration.class })
 public abstract class PruebaDeIntegracion {
@@ -60,6 +65,8 @@ public abstract class PruebaDeIntegracion {
 
 	@BeforeEach
 	void prepararEscenarioBase() {
+		jdbc.update("delete from evento_procesado");
+		jdbc.update("delete from evento_saliente");
 		reservaRepository.deleteAll();
 		reloj.fijar(AHORA);
 		when(canchasClient.obtenerCancha(CANCHA_ID)).thenReturn(cancha(true));
